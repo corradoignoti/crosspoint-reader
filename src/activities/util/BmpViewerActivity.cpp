@@ -7,6 +7,7 @@
 #include <HalDisplay.h>
 #include <HalStorage.h>
 #include <I18n.h>
+#include <JpegToBmpConverter.h>
 #include <Memory.h>
 
 #include <algorithm>
@@ -20,6 +21,23 @@ constexpr char CUSTOM_SLEEP_ROOT_BMP[] = "/sleep.bmp";
 constexpr char TRANSPARENT_SLEEP_ROOT_BMP[] = "/sleep-overlay.bmp";
 constexpr char TRANSPARENT_SLEEP_ROOT_PNG[] = "/sleep-overlay.png";
 constexpr size_t COPY_BUFFER_SIZE = 2048;
+constexpr char JPEG_PREVIEW_PATH[] = "/.crosspoint/jpeg_preview.bmp";
+
+// The converter's Print writes do not propagate short writes to its return value.
+class CheckedPreviewWriter final : public Print {
+ public:
+  explicit CheckedPreviewWriter(HalFile& file) : file(file) {}
+  size_t write(const uint8_t* buffer, size_t size) override {
+    if (getWriteError()) return 0;
+    const auto written = file.write(buffer, size);
+    if (written != size) setWriteError();
+    return written;
+  }
+  size_t write(uint8_t value) override { return write(&value, 1); }
+
+ private:
+  HalFile& file;
+};
 }  // namespace
 
 BmpViewerActivity::BmpViewerActivity(GfxRenderer& renderer, MappedInputManager& mappedInput, std::string path)
@@ -41,13 +59,26 @@ void BmpViewerActivity::loadSiblingImages() {
     return;
   }
 
-  char name[500];
+  const auto name = makeUniqueNoThrow<char[]>(500);
+  if (!name) {
+    LOG_ERR("BMP", "OOM: sibling filename buffer");
+    return;
+  }
+  size_t imageCount = 0;
+  for (auto file = dir.openNextFile(); file; file = dir.openNextFile()) {
+    if (file.isDirectory()) continue;
+    file.getName(name.get(), 500);
+    if (name[0] != '.' && FsHelpers::hasImageExtension(std::string_view{name.get()})) ++imageCount;
+  }
+  dir.rewindDirectory();
+  siblingImages.reserve(imageCount);
+
   for (auto file = dir.openNextFile(); file; file = dir.openNextFile()) {
     if (!file.isDirectory()) {
-      file.getName(name, sizeof(name));
+      file.getName(name.get(), 500);
       if (name[0] != '.') {
-        std::string fname(name);
-        if (FsHelpers::hasBmpExtension(fname) || FsHelpers::hasPngExtension(fname)) {
+        std::string fname(name.get());
+        if (FsHelpers::hasImageExtension(fname)) {
           siblingImages.push_back(fname);
         }
       }
@@ -68,6 +99,32 @@ bool BmpViewerActivity::canSetSleepCover() const {
   return FsHelpers::hasBmpExtension(filePath) ||
          (SETTINGS.sleepScreen == CrossPointSettings::SLEEP_SCREEN_MODE::TRANSPARENT_CUSTOM &&
           FsHelpers::hasPngExtension(filePath));
+}
+
+bool BmpViewerActivity::prepareJpegPreview() {
+  if (!Storage.ensureDirectoryExists("/.crosspoint")) return false;
+  if (Storage.exists(JPEG_PREVIEW_PATH) && !Storage.remove(JPEG_PREVIEW_PATH)) {
+    LOG_ERR("BMP", "Failed to remove stale JPEG preview");
+    return false;
+  }
+
+  bool prepared = false;
+  {
+    GfxRenderer::FrameBufferLoan loan(renderer);
+    HalFile input, output;
+    if (Storage.openFileForRead("BMP", filePath, input) && Storage.openFileForWrite("BMP", JPEG_PREVIEW_PATH, output)) {
+      CheckedPreviewWriter writer(output);
+      prepared = JpegToBmpConverter::jpegFileToBmpStreamWithSize(input, writer, renderer.getScreenWidth(),
+                                                                 renderer.getScreenHeight(), /*crop=*/false);
+      const bool closed = output.close();  // Check sync before reopening the preview for display.
+      prepared = prepared && !writer.getWriteError() && closed;
+    }
+  }
+  if (!prepared) {
+    LOG_ERR("BMP", "Failed to prepare JPEG preview");
+    Storage.remove(JPEG_PREVIEW_PATH);
+  }
+  return prepared;
 }
 
 bool BmpViewerActivity::renderPng() {
@@ -115,9 +172,12 @@ void BmpViewerActivity::onEnter() {
     return;
   }
 
+  const bool jpeg = FsHelpers::hasJpgExtension(filePath);
+  const bool prepared = !jpeg || prepareJpegPreview();
+  const char* bitmapPath = jpeg ? JPEG_PREVIEW_PATH : filePath.c_str();
   HalFile file;
   // 1. Open the BMP file
-  if (Storage.openFileForRead("BMP", filePath, file)) {
+  if (prepared && Storage.openFileForRead("BMP", bitmapPath, file)) {
     Bitmap bitmap(file, true,
                   renderer.grayscaleCapabilities(HalDisplay::GrayscaleMode::Absolute).supported() &&
                       display.getController() == HalDisplay::Controller::SSD1677);
@@ -229,6 +289,7 @@ void BmpViewerActivity::onEnter() {
 
 void BmpViewerActivity::onExit() {
   Activity::onExit();
+  if (Storage.exists(JPEG_PREVIEW_PATH)) Storage.remove(JPEG_PREVIEW_PATH);
   renderer.clearScreen();
   renderer.displayBuffer(HalDisplay::HALF_REFRESH);
 }
