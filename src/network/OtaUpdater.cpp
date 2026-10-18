@@ -12,6 +12,7 @@
 // clang-format on
 
 #include <algorithm>
+#include <cstdlib>
 #include <cstring>
 #include <string>
 
@@ -25,6 +26,23 @@ constexpr char latestReleaseUrl[] = "https://api.github.com/repos/corradoignoti/
 #else
 constexpr char latestReleaseUrl[] = "https://api.github.com/repos/crosspoint-reader/crosspoint-reader/releases/latest";
 #endif
+
+// Fork tags carry the board suffix, optionally with a fork revision:
+// 1.6.5-ws397 or 1.6.5-ws397.1.
+bool tagHasBoardSuffix(const char* tag, const char* suffix) {
+  const char* p = strstr(tag, suffix);
+  if (!p) return false;
+  const char next = p[strlen(suffix)];
+  return next == '\0' || next == '.';
+}
+
+// Fork revision N of "<x.y.z>-<board>.N"; 0 when absent.
+int forkRevision(const char* version) {
+  char marker[24];
+  snprintf(marker, sizeof(marker), "-%.*s.", static_cast<int>(board_tag::boardNameLen()), board_tag::boardName());
+  const char* p = strstr(version, marker);
+  return p ? atoi(p + strlen(marker)) : 0;
+}
 }  // namespace
 
 OtaUpdater::OtaUpdaterError OtaUpdater::checkForUpdate() {
@@ -59,12 +77,9 @@ OtaUpdater::OtaUpdaterError OtaUpdater::checkForUpdate() {
       releaseParser.feed(reinterpret_cast<const char*>(data + offset), 1);
       offset++;
       if (releaseParser.foundTag()) {
-        // Fork tags already carry the board suffix (e.g. 1.6.5-ws397); don't repeat it.
         const char* tag = releaseParser.getTagName();
-        const size_t tagLen = strlen(tag);
-        const size_t suffixLen = strlen(assetSuffix);
-        const bool tagHasSuffix = tagLen >= suffixLen && strcmp(tag + tagLen - suffixLen, assetSuffix) == 0;
-        snprintf(assetName, sizeof(assetName), "crosspoint-%s%s.bin", tag, tagHasSuffix ? "" : assetSuffix);
+        snprintf(assetName, sizeof(assetName), "crosspoint-%s%s.bin", tag,
+                 tagHasBoardSuffix(tag, assetSuffix) ? "" : assetSuffix);
         releaseParser.setFirmwareAssetName(assetName);
         assetNameSet = true;
       }
@@ -133,6 +148,11 @@ bool OtaUpdater::isUpdateNewer() const {
    * Check patch versions.
    */
   if (latestPatch != currentPatch) return latestPatch > currentPatch;
+
+  // Same upstream base: a higher fork revision (1.6.5-ws397.1 > 1.6.5-ws397) is newer.
+  const int latestRevision = forkRevision(latestVersion.c_str());
+  const int currentRevision = forkRevision(currentVersion);
+  if (latestRevision != currentRevision) return latestRevision > currentRevision;
 
   // If we reach here, it means all segments are equal.
   // One final check, if we're on an RC build (contains "-rc"), we should consider the latest version as newer even if
