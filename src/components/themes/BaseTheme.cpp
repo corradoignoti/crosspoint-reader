@@ -1,5 +1,6 @@
 #include "BaseTheme.h"
 
+#include <BoardConfig.h>
 #include <FreeInkUIGfxRenderer.h>
 #include <GfxRenderer.h>
 #include <HalClock.h>
@@ -198,11 +199,36 @@ void BaseTheme::drawHintLabel(const GfxRenderer& renderer, const int fontId, con
   }
 }
 
+// WS397 has no Left/Right keys: Back stays in slot 1 next to BOOT on the left
+// edge, Confirm moves to slot 4 next to the OK rocker on the right edge.
+void BaseTheme::placeHintLabelsForBoard(const char*& btn1, const char*& btn2, const char*& btn3, const char*& btn4) {
+  (void)btn1;
+#if FREEINK_DEVICE_WS397
+  btn4 = btn2;
+  btn2 = "";
+  btn3 = "";
+#else
+  (void)btn2;
+  (void)btn3;
+  (void)btn4;
+#endif
+}
+
+bool BaseTheme::hintSlotHasKey(const int slot) {
+#if FREEINK_DEVICE_WS397
+  return slot == 0 || slot == 3;
+#else
+  (void)slot;
+  return true;
+#endif
+}
+
 void BaseTheme::drawButtonHints(GfxRenderer& renderer, const char* btn1, const char* btn2, const char* btn3,
                                 const char* btn4) const {
   if (gpio.hasTouch()) {
     return;
   }
+  placeHintLabelsForBoard(btn1, btn2, btn3, btn4);
 
   const GfxRenderer::Orientation orig_orientation = renderer.getOrientation();
   renderer.setOrientation(GfxRenderer::Orientation::Portrait);
