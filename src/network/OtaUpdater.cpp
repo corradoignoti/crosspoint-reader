@@ -19,7 +19,12 @@
 #include "FirmwareFlasher.h"
 
 namespace {
+#if FREEINK_DEVICE_WS397
+// WS397 builds are published from the fork, not upstream.
+constexpr char latestReleaseUrl[] = "https://api.github.com/repos/corradoignoti/crosspoint-reader/releases/latest";
+#else
 constexpr char latestReleaseUrl[] = "https://api.github.com/repos/crosspoint-reader/crosspoint-reader/releases/latest";
+#endif
 }  // namespace
 
 OtaUpdater::OtaUpdaterError OtaUpdater::checkForUpdate() {
@@ -54,7 +59,12 @@ OtaUpdater::OtaUpdaterError OtaUpdater::checkForUpdate() {
       releaseParser.feed(reinterpret_cast<const char*>(data + offset), 1);
       offset++;
       if (releaseParser.foundTag()) {
-        snprintf(assetName, sizeof(assetName), "crosspoint-%s%s.bin", releaseParser.getTagName(), assetSuffix);
+        // Fork tags already carry the board suffix (e.g. 1.6.5-ws397); don't repeat it.
+        const char* tag = releaseParser.getTagName();
+        const size_t tagLen = strlen(tag);
+        const size_t suffixLen = strlen(assetSuffix);
+        const bool tagHasSuffix = tagLen >= suffixLen && strcmp(tag + tagLen - suffixLen, assetSuffix) == 0;
+        snprintf(assetName, sizeof(assetName), "crosspoint-%s%s.bin", tag, tagHasSuffix ? "" : assetSuffix);
         releaseParser.setFirmwareAssetName(assetName);
         assetNameSet = true;
       }
