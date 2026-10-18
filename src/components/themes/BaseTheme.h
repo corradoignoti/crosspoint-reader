@@ -249,6 +249,10 @@ class BaseTheme {
   // wrapping to two lines rather than overflowing when it's too wide to fit.
   static void drawHintLabel(const GfxRenderer& renderer, int fontId, const char* label, int x, int boxWidth, int boxTop,
                             int boxHeight);
+  // Moves hint labels to slots that sit next to keys this board actually has.
+  // Called at the top of every theme's drawButtonHints().
+  static void placeHintLabelsForBoard(const char*& btn1, const char*& btn2, const char*& btn3, const char*& btn4);
+  static bool hintSlotHasKey(int slot);
   virtual void drawSideButtonHints(const GfxRenderer& renderer, const char* topBtn, const char* bottomBtn) const;
   // Menu row height as DRAWN by drawButtonMenu. HomeActivity builds its touch
   // grid from this, so hit bands always match the visuals (RoundedRaff derives

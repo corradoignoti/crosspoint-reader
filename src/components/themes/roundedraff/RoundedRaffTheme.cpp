@@ -203,6 +203,7 @@ void RoundedRaffTheme::drawButtonHints(GfxRenderer& renderer, const char* btn1, 
   if (gpio.hasTouch()) {
     return;
   }
+  placeHintLabelsForBoard(btn1, btn2, btn3, btn4);
 
   const GfxRenderer::Orientation origOrientation = renderer.getOrientation();
   renderer.setOrientation(GfxRenderer::Orientation::Portrait);
