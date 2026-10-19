@@ -85,11 +85,6 @@ USB port or browser before assuming the device is locked. Only reach for the unl
 
 ## Install firmware
 
-### Flash this firmware from your browser
-
-You can flash this firmware directly from your browser. Connect your device via USB-C, wake/unlock it, and go to
-https://cross-share.fizban.net/.
-
 ### Web installer (recommended)
 
 1. Connect your device to your computer via USB-C and wake/unlock the device

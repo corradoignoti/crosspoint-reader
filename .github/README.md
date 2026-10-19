@@ -26,6 +26,11 @@ GitHub prereleases (e.g. `2.0.0rc-ws397`), so OTA does not offer them; install t
 
 ## Install
 
+### From your browser
+
+You can flash this firmware directly from your browser. Connect the board via USB-C and go to
+https://cross-share.fizban.net/.
+
 ### From a release
 
 Download `crosspoint-<version>.bin` (e.g. `crosspoint-2.0.0rc-ws397.bin`) from [Releases](https://github.com/corradoignoti/crosspoint-reader/releases).
