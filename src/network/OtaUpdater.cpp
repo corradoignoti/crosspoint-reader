@@ -127,8 +127,9 @@ bool OtaUpdater::isUpdateNewer() const {
   const auto currentVersion = CROSSPOINT_VERSION;
 
   // semantic version check (only match on 3 segments)
+  int currentPatchEnd = 0;
   sscanf(latestVersion.c_str(), "%d.%d.%d", &latestMajor, &latestMinor, &latestPatch);
-  sscanf(currentVersion, "%d.%d.%d", &currentMajor, &currentMinor, &currentPatch);
+  sscanf(currentVersion, "%d.%d.%d%n", &currentMajor, &currentMinor, &currentPatch, &currentPatchEnd);
 
   /*
    * Compare major versions.
@@ -156,8 +157,8 @@ bool OtaUpdater::isUpdateNewer() const {
 
   // If we reach here, it means all segments are equal.
   // One final check, if we're on an RC build (contains "-rc"), we should consider the latest version as newer even if
-  // the segments are equal, since RC builds are pre-release versions.
-  if (strstr(currentVersion, "-rc") != nullptr) {
+  // the segments are equal, since RC builds are pre-release versions. Fork RC builds use the tag form "2.0.0rc-ws397".
+  if (strstr(currentVersion, "-rc") != nullptr || strncmp(currentVersion + currentPatchEnd, "rc", 2) == 0) {
     return true;
   }
 
