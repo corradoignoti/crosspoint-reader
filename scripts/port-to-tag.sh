@@ -41,7 +41,7 @@ main() {
   fi
 
   if [[ -z "$old_tag" ]]; then
-    old_tag="$(git describe --tags --abbrev=0 --exclude '*-ws397' "$port_branch")"
+    old_tag="$(git describe --tags --abbrev=0 --exclude '*-ws397*' "$port_branch")"
   fi
 
   if [[ "$(git rev-parse "$old_tag^{commit}")" == "$(git rev-parse "$new_tag^{commit}")" ]]; then
