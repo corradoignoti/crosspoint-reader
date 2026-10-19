@@ -21,13 +21,14 @@ contribution guidelines, see the [upstream README](../README.md) and the
 Target hardware: ESP32-S3 with 16 MB flash and 8 MB OPI PSRAM, SD card on 4-bit SDMMC.
 
 Release versions follow upstream with a `-ws397` suffix, e.g. `1.6.5-ws397` is based on upstream `1.6.5`. Fork-only
-revisions on the same upstream base add `.N`, e.g. `1.6.5-ws397.1`.
+revisions on the same upstream base add `.N`, e.g. `1.6.5-ws397.1`. Ports of upstream release candidates are published as
+GitHub prereleases (e.g. `2.0.0rc-ws397`), so OTA does not offer them; install those over USB.
 
 ## Install
 
 ### From a release
 
-Download `crosspoint-<version>.bin` (e.g. `crosspoint-1.6.5-ws397.1.bin`) from [Releases](https://github.com/corradoignoti/crosspoint-reader/releases).
+Download `crosspoint-<version>.bin` (e.g. `crosspoint-2.0.0rc-ws397.bin`) from [Releases](https://github.com/corradoignoti/crosspoint-reader/releases).
 
 The release file is the application image only. On a board that already runs a CrossPoint build with the same partition
 table, flash it to `app0` and reset the OTA selector so the board boots from it:
@@ -50,7 +51,8 @@ pio run -e ws397-gh_release -t upload
 
 ## Updates
 
-The on-device OTA update checks this fork's latest release and installs its `crosspoint-<version>.bin` asset. Builds older
+The on-device OTA update checks this fork's latest release (prereleases are skipped) and installs its
+`crosspoint-<version>.bin` asset. A release candidate build is offered the final release of the same version. Builds older
 than `1.6.5-ws397.1` check upstream instead, which has no Waveshare 3.97 build; update those over USB as described above.
 
 ## Maintaining the port
