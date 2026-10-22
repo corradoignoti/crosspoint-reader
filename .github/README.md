@@ -17,6 +17,9 @@ contribution guidelines, see the [upstream README](../README.md) and the
 - `[env:ws397-gh_release]` — release build (`LOG_LEVEL=1`)
 - Both environments live in `platformio.ws397.ini`, loaded through `extra_configs` in `platformio.ini`
 - `FREEINK_DEVICE_WS397` board tag (`ws397`)
+- CrossShare branding: the device, web UI, hotspot (`CrossShare`), DHCP hostname (`CrossShare-<MAC>`) and USB name show
+  CrossShare and its logo (source: `src/images/cross-share_logo.svg`). The web address stays `http://crosspoint.local`.
+  Upstream docs that mention the `CrossPoint-Reader` hotspot or the CrossPoint logo apply with that substitution.
 
 Target hardware: ESP32-S3 with 16 MB flash and 8 MB OPI PSRAM, SD card on 4-bit SDMMC.
 
@@ -88,6 +91,9 @@ Keeping the stack easy to replay:
 - Prefer new files over edits to upstream files. Build environments go in `platformio.ws397.ini`, not `platformio.ini`.
 - When an upstream file must change, keep the hunk small and gate it with `#if defined(FREEINK_DEVICE_WS397)`.
 - Never edit the root `README.md`.
+- After a port, search for new upstream "CrossPoint Reader" UI text and rename it to CrossShare. Keep compatibility
+  names: `crosspoint.local`, the OTA asset name, `window.CrossPoint` and the `.crosspoint` SD folder. UI branding is
+  not gated by `FREEINK_DEVICE_WS397`, because generated HTML and image assets cannot be gated.
 - Avoid freeink-sdk changes; if unavoidable, fork the SDK and point the submodule at it in its own commit.
 
 ## Credits
