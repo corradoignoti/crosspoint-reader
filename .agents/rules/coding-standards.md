@@ -18,6 +18,10 @@ longer text must express a necessary contract. Describe current code for a futur
 maintainer, not draft comparisons or investigation history. Read changed comments
 without the diff before handoff; remove narration and restatements.
 
+Write code comments in English even when the human writes prompts in another
+language. User-facing text follows the
+[translation workflow](generated-files-cache.md#translation-workflow).
+
 ### Memory Safety and RAII
 
 Prefer `std::unique_ptr` and destructor cleanup. File lifetime follows the

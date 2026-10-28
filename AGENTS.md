@@ -61,7 +61,8 @@ explicit human approval. Push only on an explicit human instruction to push;
 edit/commit approval does not authorize it. Never open or close a PR.
 
 Repository-facing prose: use plain English for non-native readers and standard
-technical terms when clearest. Code comments must be short and useful after merge; follow the
+technical terms when clearest. Code comments are always in English, even when
+prompts are in another language. They must be short and useful after merge; follow the
 [comment rules](.agents/rules/coding-standards.md#comment-style).
 
 ## Mandatory firmware handoff
